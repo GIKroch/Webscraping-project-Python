@@ -9,7 +9,9 @@ def retrieve_info(text_ogloszenia, to_find, end_to_find):
     try:
         start_idx = str(text_ogloszenia).index(to_find) + len(to_find)
         end_idx = str(text_ogloszenia)[start_idx:len(str(text_ogloszenia))].index(end_to_find)+start_idx
-        my_str = str(text_ogloszenia)[start_idx:end_idx].strip('\n').lstrip()
+        my_str = str(text_ogloszenia)[start_idx:end_idx]
+        my_str = my_str.replace('\n', '')
+        my_str = my_str.lstrip().rstrip()
     except:
         my_str = ""
     return(my_str)
@@ -89,9 +91,14 @@ for i in range(0, 10):
     
     handles = driver.window_handles
     driver.switch_to.window(handles[1])
-    pageSource = driver.page_source
-    bs = BeautifulSoup(pageSource, "lxml")
-    text_ogloszenia = bs.find(id="divOgloszenie")
+    text_ogloszenia = None
+    count=0
+    
+    while text_ogloszenia == None or count>10:
+            pageSource = driver.page_source
+            bs = BeautifulSoup(pageSource, "lxml")
+            text_ogloszenia = bs.find(id="divOgloszenie")
+            count+=1
     
 #    the name of the ordering organization (nazwa zamawiającego), 
 #    I. 1) NAZWA I ADRES:
@@ -243,9 +250,15 @@ for i in range(0, 10):
     
     handles = driver.window_handles
     driver.switch_to.window(handles[1])
-    pageSource = driver.page_source
-    bs = BeautifulSoup(pageSource, "lxml")
-    text_ogloszenia = bs.find("div", {"class": "innerContentDiv"})
+    
+    text_ogloszenia = None
+    count=0
+    
+    while text_ogloszenia == None or count>10:
+            pageSource = driver.page_source
+            bs = BeautifulSoup(pageSource, "lxml")
+            text_ogloszenia = bs.find("div", {"class": "innerContentDiv"})
+            count+=1
     
 #    the name of the ordering organization (nazwa zamawiającego), 
 #    I. 1) NAZWA I ADRES:
