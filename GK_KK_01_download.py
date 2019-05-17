@@ -9,7 +9,9 @@ def retrieve_info(text_ogloszenia, to_find, end_to_find):
     try:
         start_idx = str(text_ogloszenia).index(to_find) + len(to_find)
         end_idx = str(text_ogloszenia)[start_idx:len(str(text_ogloszenia))].index(end_to_find)+start_idx
-        my_str = str(text_ogloszenia)[start_idx:end_idx].strip('\n').lstrip()
+        my_str = str(text_ogloszenia)[start_idx:end_idx]
+        my_str = my_str.replace('\n', '')
+        my_str = my_str.lstrip().rstrip()
     except:
         my_str = ""
     return(my_str)
@@ -80,18 +82,31 @@ wszystkie_rekordy.click()
 time.sleep(20)
 
 # %% Click "zobacz" and scrape data
+import re
+
 output  = list()
 
-for i in range(0, 10):
+num_of_el_text = driver.find_element_by_class_name("dxp-lead").text
+num_of_el = int(re.search("elementy (.+?)\)", num_of_el_text).group(1))
+    
+# the real number of rows is 5000, but it would take forever to scrape, so just to show that it works, I am using 10 rows.
+num_of_el = 10
+
+for i in range(0, num_of_el):
     zobacz = driver.find_element_by_id("ctl00_ContentPlaceHolder1_ASPxGridView1_DXCBtn"+str(i))
     zobacz.click()
     time.sleep(25)
     
     handles = driver.window_handles
     driver.switch_to.window(handles[1])
-    pageSource = driver.page_source
-    bs = BeautifulSoup(pageSource, "lxml")
-    text_ogloszenia = bs.find(id="divOgloszenie")
+    text_ogloszenia = None
+    count=0
+    
+    while text_ogloszenia == None or count>10:
+            pageSource = driver.page_source
+            bs = BeautifulSoup(pageSource, "lxml")
+            text_ogloszenia = bs.find(id="divOgloszenie")
+            count+=1
     
 #    the name of the ordering organization (nazwa zamawiającego), 
 #    I. 1) NAZWA I ADRES:
@@ -236,16 +251,28 @@ time.sleep(25)
 # %% Click "zobacz" and scrape data
 output2  = list()
 
-for i in range(0, 10):
+num_of_el_text = driver.find_element_by_class_name("dxp-lead").text
+num_of_el = int(re.search("elementy (.+?)\)", num_of_el_text).group(1))
+    
+# the real number of rows is 5000, but it would take forever to scrape, so just to show that it works, I am using 10 rows.
+num_of_el = 10
+
+for i in range(0, num_of_el):
     zobacz = driver.find_element_by_id("ctl00_ContentPlaceHolder1_ASPxGridView1_DXCBtn"+str(i))
     zobacz.click()
     time.sleep(30)
     
     handles = driver.window_handles
     driver.switch_to.window(handles[1])
-    pageSource = driver.page_source
-    bs = BeautifulSoup(pageSource, "lxml")
-    text_ogloszenia = bs.find("div", {"class": "innerContentDiv"})
+    
+    text_ogloszenia = None
+    count=0
+    
+    while text_ogloszenia == None or count>10:
+            pageSource = driver.page_source
+            bs = BeautifulSoup(pageSource, "lxml")
+            text_ogloszenia = bs.find("div", {"class": "innerContentDiv"})
+            count+=1
     
 #    the name of the ordering organization (nazwa zamawiającego), 
 #    I. 1) NAZWA I ADRES:
