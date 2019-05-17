@@ -82,9 +82,17 @@ wszystkie_rekordy.click()
 time.sleep(20)
 
 # %% Click "zobacz" and scrape data
+import re
+
 output  = list()
 
-for i in range(0, 10):
+num_of_el_text = driver.find_element_by_class_name("dxp-lead").text
+num_of_el = int(re.search("elementy (.+?)\)", num_of_el_text).group(1))
+    
+# the real number of rows is 5000, but it would take forever to scrape, so just to show that it works, I am using 10 rows.
+num_of_el = 10
+
+for i in range(0, num_of_el):
     zobacz = driver.find_element_by_id("ctl00_ContentPlaceHolder1_ASPxGridView1_DXCBtn"+str(i))
     zobacz.click()
     time.sleep(25)
@@ -243,7 +251,13 @@ time.sleep(25)
 # %% Click "zobacz" and scrape data
 output2  = list()
 
-for i in range(0, 10):
+num_of_el_text = driver.find_element_by_class_name("dxp-lead").text
+num_of_el = int(re.search("elementy (.+?)\)", num_of_el_text).group(1))
+    
+# the real number of rows is 5000, but it would take forever to scrape, so just to show that it works, I am using 10 rows.
+num_of_el = 10
+
+for i in range(0, num_of_el):
     zobacz = driver.find_element_by_id("ctl00_ContentPlaceHolder1_ASPxGridView1_DXCBtn"+str(i))
     zobacz.click()
     time.sleep(30)
