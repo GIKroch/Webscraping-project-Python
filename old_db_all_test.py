@@ -14,7 +14,6 @@ driver.get("http://bzp0.portal.uzp.gov.pl/index.php?ogloszenie=browser")
 ## There is no option "wszystkie" for "tryb zamowienia" in this database, 
 ## so this part of code handles this issue. Creating the list with all options
 ## of tryb zamowienia. Which the program will be later iterrating by
-
 time.sleep(5)
 tryb_zamowienia = Select(driver.find_element_by_xpath("//select[@name='trybzamowienia']"))
 
@@ -51,7 +50,7 @@ while i_tryb_zamowienia < len(options_tryb_zamowienia):
     time.sleep(0.25)
 
     
-    driver.find_element_by_xpath("//input[@name='datapublikacjiod']").send_keys("01/01/2008")
+    driver.find_element_by_xpath("//input[@name='datapublikacjiod']").send_keys("01/01/2017")
     time.sleep(0.25)
     driver.find_element_by_xpath("//input[@name='datapublikacjido']").send_keys("31/12/2018")
 
@@ -65,7 +64,7 @@ while i_tryb_zamowienia < len(options_tryb_zamowienia):
     time.sleep(0.1)
     rodzaj_ogłoszenia.select_by_value("4")
 
-    # Selecting wszystkich
+   # Selecting wszystkich
     time.sleep(0.1)
     driver.find_element_by_xpath("//input[@name = 'aktualne' and @value = '1']").click()
 
@@ -82,7 +81,6 @@ while i_tryb_zamowienia < len(options_tryb_zamowienia):
     captcha = driver.find_element_by_xpath("//input[@id='security_code']")
     time.sleep(20)
     length_captcha = len(captcha.get_attribute("value"))
-    
     ## Program which verifies if the captcha has been entered
     while length_captcha != 5:
         ctypes.windll.user32.MessageBoxW(0, "Please enter correct captcha", "Enter correct captcha!", 1)
@@ -126,7 +124,7 @@ while i_tryb_zamowienia < len(options_tryb_zamowienia):
             end_page = 0
             tabs = list(driver.window_handles)
 
-            ## Going to the next page when all tabs where scraped
+            ## Going to next page when all tabs where scraped
             if len(tabs) == 1:
                 driver.switch_to.window(tabs[0])                
                 try:
@@ -206,7 +204,7 @@ while i_tryb_zamowienia < len(options_tryb_zamowienia):
                 data["wykonawcy"] = "None"
 
 
-            with open("old_db.csv", 'a', newline= '') as file:
+            with open("old_db_test.csv", 'a', newline= '') as file:
                 try:
                     w = csv.DictWriter(file, data.keys(), delimiter = ";")
 
