@@ -20,8 +20,19 @@ def retrieve_info(text_ogloszenia, to_find, end_to_find):
 import time
 from selenium import webdriver
 from bs4 import BeautifulSoup
+from tqdm import tqdm
+import pandas as pd
+import datetime
 
 driver = webdriver.Chrome('C:/Users/xx/OneDrive/WNE/12_Web scraping/chromedriver/chromedriver.exe')  # Optional argument, if not specified will search path.
+
+# %% Prepare csv file
+cols = ['Numer ogłoszenia', 'Nazwa zamawiającego', 'Rodzaj zamówienia', 'CPV', 'Tryb udzielenia zamówienia', 'Całkowita wartosć zamówienia bez VAT', 'Liczba otrzymanych ofert', 'Cena wybranej oferty', 'Oferta z najniższą ceną', 'Oferta z najwyższą ceną', 'Podwykonawcy', 'Wartosć proc. podwykonawców']
+csv_hyperlink = 'dane_' + str(datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')) + '.csv'
+
+result = pd.DataFrame(columns=cols)
+result.to_csv(csv_hyperlink, sep=';', header=True, decimal='.', encoding="UTF-8", index=False)
+
 
 # %% Go to webpage
 driver.get('https://searchbzp.uzp.gov.pl/Search.aspx');
@@ -89,24 +100,34 @@ output  = list()
 num_of_el_text = driver.find_element_by_class_name("dxp-lead").text
 num_of_el = int(re.search("elementy (.+?)\)", num_of_el_text).group(1))
     
-# the real number of rows is 5000, but it would take forever to scrape, so just to show that it works, I am using 10 rows.
-num_of_el = 10
+# the real number of rows is 5000, but it would take forever to scrape, so just to show that it works, I am using 100 rows.
+start_idx = 0
+num_of_el = 100
 
-for i in range(0, num_of_el):
+for i in tqdm(range(start_idx, num_of_el)):
     zobacz = driver.find_element_by_id("ctl00_ContentPlaceHolder1_ASPxGridView1_DXCBtn"+str(i))
     zobacz.click()
-    time.sleep(25)
+    time.sleep(20)
     
-    handles = driver.window_handles
-    driver.switch_to.window(handles[1])
+    count=0
+    while count<10:
+        try:
+            handles = driver.window_handles
+            driver.switch_to.window(handles[1])
+            count=10
+        except:
+            time.sleep(5)
+            count+=1
+        
     text_ogloszenia = None
     count=0
     
-    while text_ogloszenia == None or count>10:
-            pageSource = driver.page_source
-            bs = BeautifulSoup(pageSource, "lxml")
-            text_ogloszenia = bs.find(id="divOgloszenie")
-            count+=1
+    while text_ogloszenia == None and count<60:
+        time.sleep(1)
+        pageSource = driver.page_source
+        bs = BeautifulSoup(pageSource, "lxml")
+        text_ogloszenia = bs.find(id="divOgloszenie")
+        count+=1
     
 #    the name of the ordering organization (nazwa zamawiającego), 
 #    I. 1) NAZWA I ADRES:
@@ -159,6 +180,14 @@ for i in range(0, num_of_el):
     to_find = 'Cena wybranej oferty/wartość umowy </b>'
     end_to_find = '<br/>'
     cena_wybranej_oferty = retrieve_info(text_ogloszenia, to_find, end_to_find)  
+    
+    if wartosc_bez_vat == "":
+        to_find = 'Postępowanie/część zostało unieważnione'
+        end_to_find = '<br/>'
+        uniewaznione = retrieve_info(text_ogloszenia, to_find, end_to_find)
+        if uniewaznione == 'tak':
+            wartosc_bez_vat = "NA"
+            cena_wybranej_oferty = "NA"
 #    
 #    
 #    value of the contract (wartość umowy), 
@@ -184,15 +213,25 @@ for i in range(0, num_of_el):
 #    value of the shares of subcontractors (wartość procentowa udziału podwykonawców).
 #    -
     
-    output_row = list([nazwa, numer_ogloszenia, rodzaj_zamowienia, cpv, tryb_udzielenia_zamowienia, wartosc_bez_vat, liczba_ofert, cena_wybranej_oferty, oferta_z_najnizsza_cena, oferta_z_najwyzsza_cena])
+    output_row = list([numer_ogloszenia, nazwa, rodzaj_zamowienia, cpv, tryb_udzielenia_zamowienia, wartosc_bez_vat, liczba_ofert, cena_wybranej_oferty, oferta_z_najnizsza_cena, oferta_z_najwyzsza_cena])
     
+    # append result to csv file
+    output_row_df = pd.DataFrame([output_row])
+    output_row_df.to_csv(csv_hyperlink, sep=';', header=False, decimal='.', encoding="UTF-8", index=False, mode='a')
+    
+    # append result to final list
     output.append(output_row)
     
+    # go back to home page
     driver.close()
     handles = driver.window_handles
     driver.switch_to.window(handles[0])
     
+    
+    
 # %% New data - choose options
+driver.get('https://searchbzp.uzp.gov.pl/Search.aspx');
+time.sleep(5)
 
 #ctl00_ContentPlaceHolder1_rbBZP_New
 radio_b_new = driver.find_element_by_id("ctl00_ContentPlaceHolder1_rbBZP_New")
@@ -239,14 +278,14 @@ time.sleep(0.5)
 #ctl00_ContentPlaceHolder1_btnSearch
 submit_b = driver.find_element_by_id("ctl00_ContentPlaceHolder1_btnSearch")
 submit_b.click()
-time.sleep(25)
+time.sleep(30)
 
-#dropdown_button = driver.find_element_by_id("ctl00_ContentPlaceHolder1_ASPxGridView1_DXPagerBottom_DDB")
-#dropdown_button.click()
-#time.sleep(0.5)
-#wszystkie_rekordy =  driver.find_element_by_id("ctl00_ContentPlaceHolder1_ASPxGridView1_DXPagerBottom_PSP_DXI5_")
-#wszystkie_rekordy.click()
-#time.sleep(20)
+dropdown_button = driver.find_element_by_id("ctl00_ContentPlaceHolder1_ASPxGridView1_DXPagerBottom_DDB")
+dropdown_button.click()
+time.sleep(0.5)
+wszystkie_rekordy =  driver.find_element_by_id("ctl00_ContentPlaceHolder1_ASPxGridView1_DXPagerBottom_PSP_DXI5_")
+wszystkie_rekordy.click()
+time.sleep(30)
     
 # %% Click "zobacz" and scrape data
 output2  = list()
@@ -254,21 +293,30 @@ output2  = list()
 num_of_el_text = driver.find_element_by_class_name("dxp-lead").text
 num_of_el = int(re.search("elementy (.+?)\)", num_of_el_text).group(1))
     
-# the real number of rows is 5000, but it would take forever to scrape, so just to show that it works, I am using 10 rows.
-num_of_el = 10
+# the real number of rows is 5000, but it would take forever to scrape, so just to show that it works, I am using 100 rows.
+start_idx = 0
+num_of_el = 100
 
-for i in range(0, num_of_el):
+for i in tqdm(range(start_idx, num_of_el)):
     zobacz = driver.find_element_by_id("ctl00_ContentPlaceHolder1_ASPxGridView1_DXCBtn"+str(i))
     zobacz.click()
-    time.sleep(30)
+    time.sleep(15)
     
-    handles = driver.window_handles
-    driver.switch_to.window(handles[1])
+    count=0
+    while count<10:
+        try:
+            handles = driver.window_handles
+            driver.switch_to.window(handles[1])
+            count=10
+        except:
+            time.sleep(5)
+            count+=1
     
     text_ogloszenia = None
     count=0
     
-    while text_ogloszenia == None or count>10:
+    while text_ogloszenia == None and count<60:
+            time.sleep(1)
             pageSource = driver.page_source
             bs = BeautifulSoup(pageSource, "lxml")
             text_ogloszenia = bs.find("div", {"class": "innerContentDiv"})
@@ -319,13 +367,35 @@ for i in range(0, num_of_el):
     to_find = 'Liczba otrzymanych ofert:'
     end_to_find = '<br/>'
     liczba_ofert = retrieve_info(text_ogloszenia, to_find, end_to_find)
-#    
+    if liczba_ofert=="":
+        to_find = 'nie złożono żadnej oferty'
+        try:
+            start_idx = str(text_ogloszenia).index(to_find) + len(to_find)
+            liczba_ofert=0
+        except:
+            liczba_ofert=""
+    if liczba_ofert=="":
+        to_find = 'została złożona jedna oferta'
+        try:
+            start_idx = str(text_ogloszenia).index(to_find) + len(to_find)
+            liczba_ofert=1
+        except:
+            liczba_ofert=""
+    
 #    price of the selected offer (cena wybranej oferty), 
 #    Cena wybranej oferty: 84359
     to_find = 'Cena wybranej oferty/wartość umowy </b>'
     end_to_find = '<br/>'
     cena_wybranej_oferty = retrieve_info(text_ogloszenia, to_find, end_to_find)  
 #    
+    if wartosc_bez_vat == "":
+        to_find = '<div>Postępowanie / część zostało unieważnione</div>\n<div>'
+        end_to_find = '</div>'
+        uniewaznione = retrieve_info(text_ogloszenia, to_find, end_to_find)
+        if uniewaznione == 'tak':
+            wartosc_bez_vat = "NA"
+            cena_wybranej_oferty = "NA"
+    
 #    
 #    value of the contract (wartość umowy), 
 #    -
@@ -357,29 +427,39 @@ for i in range(0, num_of_el):
     end_to_find = '<br/>'
     wartosc_proc_podwykonawcow = retrieve_info(text_ogloszenia, to_find, end_to_find).strip('</div>').strip('<div>')
     
-    output_row = list([nazwa, numer_ogloszenia, rodzaj_zamowienia, cpv, tryb_udzielenia_zamowienia, wartosc_bez_vat, liczba_ofert, cena_wybranej_oferty, oferta_z_najnizsza_cena, oferta_z_najwyzsza_cena, podwykonawcy, wartosc_proc_podwykonawcow])
-    
+    output_row = list([numer_ogloszenia, nazwa, rodzaj_zamowienia, cpv, tryb_udzielenia_zamowienia, wartosc_bez_vat, liczba_ofert, cena_wybranej_oferty, oferta_z_najnizsza_cena, oferta_z_najwyzsza_cena, podwykonawcy, wartosc_proc_podwykonawcow])
+        
+    # append result to csv file
+    output_row_df = pd.DataFrame([output_row])
+    output_row_df.to_csv(csv_hyperlink, sep=';', header=False, decimal='.', encoding="UTF-8", index=False, mode='a')
+
+    # append result to final list
     output2.append(output_row)
     
     driver.close()
     handles = driver.window_handles
     driver.switch_to.window(handles[0])
     
+    
+    
 # %% Cleanup
 driver.close()
 driver.quit()
 
-# %% Save results to .csv
-import pandas as pd
+# %% Save results to final list
 
 output_df = pd.DataFrame(output)
-output_df.columns = ['Nazwa', 'Numer ogłoszenia', 'Rodzaj zamówienia', 'CPV', 'Tryb udzielenia zamówienia', 'Wartosć bez VAT', 'Liczba otrzymanych ofert', 'Cena wybranej oferty', 'Oferta z najniższą ceną', 'Oferta z najwyższą ceną']
+output_df.columns = ['Numer ogłoszenia', 'Nazwa zamawiającego', 'Rodzaj zamówienia', 'CPV', 'Tryb udzielenia zamówienia', 'Całkowita wartosć zamówienia bez VAT', 'Liczba otrzymanych ofert', 'Cena wybranej oferty', 'Oferta z najniższą ceną', 'Oferta z najwyższą ceną']
 
 output_df2 = pd.DataFrame(output2)
-output_df2.columns = ['Nazwa', 'Numer ogłoszenia', 'Rodzaj zamówienia', 'CPV', 'Tryb udzielenia zamówienia', 'Wartosć bez VAT', 'Liczba otrzymanych ofert', 'Cena wybranej oferty', 'Oferta z najniższą ceną', 'Oferta z najwyższą ceną', 'Podwykonawcy', 'Wartosć proc. podwykonawców']
+output_df2.columns = ['Numer ogłoszenia', 'Nazwa zamawiającego', 'Rodzaj zamówienia', 'CPV', 'Tryb udzielenia zamówienia', 'Całkowita wartosć zamówienia bez VAT', 'Liczba otrzymanych ofert', 'Cena wybranej oferty', 'Oferta z najniższą ceną', 'Oferta z najwyższą ceną', 'Podwykonawcy', 'Wartosć proc. podwykonawców']
 
 result = output_df.append(output_df2)
 
-result.to_csv('dane.csv', sep=';', header=True, decimal=',', encoding="UTF-8")
+## Reorganize columns
+#cols = ['Numer ogłoszenia', 'Nazwa zamawiającego', 'Rodzaj zamówienia', 'CPV', 'Tryb udzielenia zamówienia', 'Całkowita wartosć zamówienia bez VAT', 'Liczba otrzymanych ofert', 'Cena wybranej oferty', 'Oferta z najniższą ceną', 'Oferta z najwyższą ceną', 'Podwykonawcy', 'Wartosć proc. podwykonawców']
+#result = result[cols]
+#
+#result.to_csv('dane.csv', sep=';', header=True, decimal='.', encoding="UTF-8", index=False)
 
 
